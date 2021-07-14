@@ -1,9 +1,10 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const config = require("./config/dev");
+const config = require("./config");
 const FakeDB = require("./fake-db");
 
 const productRoutes = require("./routes/products");
+const path = require("path");
 
 mongoose
   .connect(config.DB_URI, {
@@ -13,13 +14,23 @@ mongoose
     useCreateIndex: true,
   })
   .then(() => {
-    const fakeDb = new FakeDB();
-    fakeDb.initDB();
+    if (process.env.NODE_ENV !== "production") {
+      const fakeDb = new FakeDB();
+      // fakeDb.initDB();
+    }
   });
 
 const app = express();
 
 app.use("/api/v1/products", productRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  const appPath = path.join(__dirname, "..", "dist", "angular-mongodb");
+  app.use(express.static(appPath));
+  app.get("*", function (req, res) {
+    res.sendFile(path.resolve(appPath, "index.html"));
+  });
+}
 
 const PORT = process.env.PORT || "3001";
 
